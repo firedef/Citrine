@@ -11,4 +11,6 @@ void Window::Close() {
 
 void Window::createGlfwWindow() {
     glfwWindow = glfwCreateWindow(800, 600, "unnamed window", nullptr, nullptr);
+    glfwMakeContextCurrent(glfwWindow);
+    glfwSwapInterval(0);
 }

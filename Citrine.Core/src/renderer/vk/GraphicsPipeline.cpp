@@ -30,7 +30,7 @@ VkShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& src
     createInfo.pCode = reinterpret_cast<const uint32_t*>(src.data());
 
     VkShaderModule shaderModule;
-    VkCheck(vkCreateShaderModule(win.vkDevice, &createInfo, nullptr, &shaderModule), "vkCreateShaderModule (GraphicsPipeline.cpp)")
+    VkCheck(vkCreateShaderModule(win.device.device, &createInfo, nullptr, &shaderModule), "vkCreateShaderModule (GraphicsPipeline.cpp)")
     return shaderModule;
 }
 
@@ -65,14 +65,14 @@ void GraphicsPipeline::createPipeline(VkRenderPass renderPass) {
     VkViewport viewport{};
     viewport.x = 0;
     viewport.y = 0;
-    viewport.width = static_cast<float>(win.swapExtent.width);
-    viewport.height = static_cast<float>(win.swapExtent.height);
+    viewport.width = static_cast<float>(win.swapChain.swapExtent.width);
+    viewport.height = static_cast<float>(win.swapChain.swapExtent.height);
     viewport.minDepth = 0;
     viewport.maxDepth = 1;
     
     VkRect2D scissor{};
     scissor.offset = {0,0};
-    scissor.extent = win.swapExtent;
+    scissor.extent = win.swapChain.swapExtent;
     
     VkPipelineViewportStateCreateInfo viewportCreateInfo{};
     viewportCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -115,7 +115,7 @@ void GraphicsPipeline::createPipeline(VkRenderPass renderPass) {
     VkPipelineLayoutCreateInfo layoutCreateInfo{};
     layoutCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
 
-    VkCheck(vkCreatePipelineLayout(win.vkDevice, &layoutCreateInfo, nullptr, &pipelineLayout), "vkCreatePipelineLayout (GraphicsPipeline.cpp)");
+    VkCheck(vkCreatePipelineLayout(win.device.device, &layoutCreateInfo, nullptr, &pipelineLayout), "vkCreatePipelineLayout (GraphicsPipeline.cpp)");
 
     VkPipelineShaderStageCreateInfo stages[] = {vertCreateInfo, fragCreateInfo};
     
@@ -136,19 +136,25 @@ void GraphicsPipeline::createPipeline(VkRenderPass renderPass) {
     pipelineCreateInfo.renderPass = renderPass;
     pipelineCreateInfo.subpass = 0;
 
-    VkCheck(vkCreateGraphicsPipelines(win.vkDevice, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline), "vkCreateGraphicsPipelines (GraphicsPipeline.cs)");
+    VkCheck(vkCreateGraphicsPipelines(win.device.device, VK_NULL_HANDLE, 1, &pipelineCreateInfo, nullptr, &graphicsPipeline), "vkCreateGraphicsPipelines (GraphicsPipeline.cs)");
    
-    vkDestroyShaderModule(win.vkDevice, vertexShader, nullptr);
-    vkDestroyShaderModule(win.vkDevice, fragmentShader, nullptr);
+    vkDestroyShaderModule(win.device.device, vertexShader, nullptr);
+    vkDestroyShaderModule(win.device.device, fragmentShader, nullptr);
+    currentRenderPass = renderPass;
 }
 
 void GraphicsPipeline::destroyPipeline() {
-    vkDestroyPipeline(win.vkDevice, graphicsPipeline, nullptr);
-    vkDestroyPipelineLayout(win.vkDevice, pipelineLayout, nullptr);
+    vkDestroyPipeline(win.device.device, graphicsPipeline, nullptr);
+    vkDestroyPipelineLayout(win.device.device, pipelineLayout, nullptr);
 }
 
 void GraphicsPipeline::bindPipeline() {
-    vkCmdBindPipeline(win.commandBuffer, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    vkCmdDraw(win.commandBuffer, 3, 1, 0, 0);
+    vkCmdBindPipeline(win.commandPool.currentCommandBuffer().vk, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
+    vkCmdDraw(win.commandPool.currentCommandBuffer().vk, 3, 1, 0, 0);
+}
+
+void GraphicsPipeline::recreatePipeline() {
+    destroyPipeline();
+    createPipeline(currentRenderPass);
 }
 

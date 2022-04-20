@@ -19,6 +19,7 @@ public:
     void startRenderPass();
     void endRenderPass();
     void destroyRenderPass();
+    void recreateRenderPass();
 };
 
 

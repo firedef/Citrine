@@ -3,7 +3,7 @@
 
 void RenderPass::createRenderPass() {
     VkAttachmentDescription colorAttachment{};
-    colorAttachment.format = win.surfaceFormat.format;
+    colorAttachment.format = win.swapChain.surfaceFormat.format;
     colorAttachment.samples = VK_SAMPLE_COUNT_1_BIT;
     colorAttachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
     colorAttachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE;
@@ -38,30 +38,35 @@ void RenderPass::createRenderPass() {
     passCreateInfo.dependencyCount = 1;
     passCreateInfo.pDependencies = &dependency;
 
-    VkCheck(vkCreateRenderPass(win.vkDevice, &passCreateInfo, nullptr, &renderPass), "vkCreateRenderPass (RenderPass.cpp)");
+    VkCheck(vkCreateRenderPass(win.device.device, &passCreateInfo, nullptr, &renderPass), "vkCreateRenderPass (RenderPass.cpp)");
 }
 
 void RenderPass::destroyRenderPass() {
-    vkDestroyRenderPass(win.vkDevice, renderPass, nullptr);
+    vkDestroyRenderPass(win.device.device, renderPass, nullptr);
 }
 
 void RenderPass::startRenderPass() {
-    uint32_t imageIndex = win.currentImageIndex;
+    uint32_t imageIndex = win.swapChain.currentImageIndex;
     
     VkRenderPassBeginInfo renderPassBeginInfo{};
     renderPassBeginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     renderPassBeginInfo.renderPass = renderPass;
-    renderPassBeginInfo.framebuffer = win.swapChainFramebuffers[imageIndex];
+    renderPassBeginInfo.framebuffer = win.swapChain.swapChainFramebuffers[imageIndex];
     renderPassBeginInfo.renderArea.offset = {0,0};
-    renderPassBeginInfo.renderArea.extent = win.swapExtent;
+    renderPassBeginInfo.renderArea.extent = win.swapChain.swapExtent;
 
-    VkClearValue clearColor = {{{1,0,0,1}}};
+    VkClearValue clearColor = {{{0,0,0,1}}};
     renderPassBeginInfo.clearValueCount = 1;
     renderPassBeginInfo.pClearValues = &clearColor;
 
-    vkCmdBeginRenderPass(win.commandBuffer, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(win.commandPool.currentCommandBuffer().vk, &renderPassBeginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }
 
 void RenderPass::endRenderPass() {
-    vkCmdEndRenderPass(win.commandBuffer);
+    vkCmdEndRenderPass(win.commandPool.currentCommandBuffer().vk);
+}
+
+void RenderPass::recreateRenderPass() {
+    destroyRenderPass();
+    createRenderPass();
 }

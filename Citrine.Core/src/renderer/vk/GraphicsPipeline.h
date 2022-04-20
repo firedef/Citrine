@@ -15,6 +15,7 @@ private:
     std::vector<char> geometryShaderCode;
     std::vector<char> tesselationShaderCode;
     VkWindow& win;
+    VkRenderPass currentRenderPass;
     
     VkShaderModule vertexShader;
     VkShaderModule fragmentShader;
@@ -32,6 +33,7 @@ public:
     void createPipeline(VkRenderPass renderPass);
     void bindPipeline();
     void destroyPipeline();
+    void recreatePipeline();
 };
 
 
