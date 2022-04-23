@@ -46,7 +46,7 @@ private:
     void chooseSwapPresentMode() {
         // V-Sync
         // VK_PRESENT_MODE_FIFO_KHR on linux x11 with nvidia drivers lags so much, so avoid it's as much as possible
-        swapPresentMode = VK_PRESENT_MODE_FIFO_KHR;
+        swapPresentMode = swapChainSupportDetails.presentModes[0];
 
         // no V-Sync
         if (std::find(swapChainSupportDetails.presentModes.begin(), swapChainSupportDetails.presentModes.end(), VK_PRESENT_MODE_IMMEDIATE_KHR) != swapChainSupportDetails.presentModes.end())

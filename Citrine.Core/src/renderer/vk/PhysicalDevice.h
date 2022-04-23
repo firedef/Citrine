@@ -19,14 +19,27 @@ private:
 
             if (deviceProperties.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) currentPoints += 1000;
             if (deviceFeatures.geometryShader) currentPoints += 1000;
-            currentPoints += deviceProperties.limits.maxImageDimension2D;
+            
+            // add points from memory size
+            VkPhysicalDeviceMemoryProperties memoryProperties;
+            vkGetPhysicalDeviceMemoryProperties(device, &memoryProperties);
+            uint64_t memory = 0;
+            for (int i = 0; i < memoryProperties.memoryHeapCount; ++i) 
+                if (memoryProperties.memoryHeaps[i].flags & VK_MEMORY_HEAP_DEVICE_LOCAL_BIT)
+                    memory += memoryProperties.memoryHeaps[i].size;
+            currentPoints += memory >> 22;
 
+            std::cout << "found GPU " << deviceProperties.deviceName << ", mem:" << (memory / 1024 / 1024) << "mb\n";
             if (currentPoints <= bestDevicePoints) continue;
             bestDevice = device;
             bestDevicePoints = currentPoints;
         }
-
+        
         physicalDevice = bestDevice;
+        vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
+        vkGetPhysicalDeviceFeatures(physicalDevice, &physicalDeviceFeatures);
+
+        std::cout << "chosen GPU " << physicalDeviceProperties.deviceName << " (" << bestDevicePoints << " points)\n";
     }
 public:    
     VkPhysicalDevice physicalDevice;
@@ -41,9 +54,6 @@ public:
         std::vector<VkPhysicalDevice> devices(deviceCount);
         vkEnumeratePhysicalDevices(instance, &deviceCount, devices.data());
         chooseDevice(devices);
-        
-        vkGetPhysicalDeviceProperties(physicalDevice, &physicalDeviceProperties);
-        vkGetPhysicalDeviceFeatures(physicalDevice, &physicalDeviceFeatures);
     }
 };
 

@@ -1,5 +1,5 @@
-
 #include "GraphicsPipeline.h"
+
 
 std::vector<char> GraphicsPipeline::readFile(const std::string& filename) {
     std::ifstream file(filename, std::ios::ate | std::ios::binary);
@@ -35,6 +35,35 @@ VkShaderModule GraphicsPipeline::createShaderModule(const std::vector<char>& src
 }
 
 void GraphicsPipeline::createPipeline(VkRenderPass renderPass) {
+    
+    
+    VkBufferCreateInfo bufferCreateInfo{};
+    bufferCreateInfo.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    bufferCreateInfo.size = sizeof(vertices[0]) * vertices.size();
+    bufferCreateInfo.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    bufferCreateInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    VkCheck(vkCreateBuffer(win.device.device, &bufferCreateInfo, nullptr, &vertexBuffer), "dasd");
+
+    VkMemoryRequirements memRequirements;
+    vkGetBufferMemoryRequirements(win.device.device, vertexBuffer, &memRequirements);
+    
+    VkMemoryAllocateInfo allocInfo{};
+    allocInfo.sType = VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO;
+    allocInfo.allocationSize = memRequirements.size;
+    allocInfo.memoryTypeIndex = findMemoryType(memRequirements.memoryTypeBits, VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+    
+    VkCheck(vkAllocateMemory(win.device.device, &allocInfo, nullptr, &vertexBufferMem), "amogus");
+    vkBindBufferMemory(win.device.device, vertexBuffer, vertexBufferMem, 0);
+    
+    void* data;
+    vkMapMemory(win.device.device, vertexBufferMem, 0, bufferCreateInfo.size, 0, &data);
+    memcpy(data, vertices.data(), bufferCreateInfo.size);
+    vkUnmapMemory(win.device.device, vertexBufferMem);
+    
+    
+    
+    
+    
     vertexShader = createShaderModule(vertexShaderCode);
     fragmentShader = createShaderModule(fragmentShaderCode);
     
@@ -50,12 +79,15 @@ void GraphicsPipeline::createPipeline(VkRenderPass renderPass) {
     fragCreateInfo.module = fragmentShader;
     fragCreateInfo.pName = "main";
     
+    auto binding = Vertex::getBindingDescription();
+    auto attributes = Vertex::getAttributeDescriptions();
+    
     VkPipelineVertexInputStateCreateInfo vertInputCreateInfo{};
     vertInputCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertInputCreateInfo.vertexBindingDescriptionCount = 0;
-    vertInputCreateInfo.pVertexBindingDescriptions = nullptr;
-    vertInputCreateInfo.vertexAttributeDescriptionCount = 0;
-    vertInputCreateInfo.pVertexAttributeDescriptions = nullptr;
+    vertInputCreateInfo.vertexBindingDescriptionCount = 1;
+    vertInputCreateInfo.pVertexBindingDescriptions = &binding;
+    vertInputCreateInfo.vertexAttributeDescriptionCount = attributes.size();
+    vertInputCreateInfo.pVertexAttributeDescriptions = attributes.data();
     
     VkPipelineInputAssemblyStateCreateInfo inputAsmCreateInfo{};
     inputAsmCreateInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -144,13 +176,21 @@ void GraphicsPipeline::createPipeline(VkRenderPass renderPass) {
 }
 
 void GraphicsPipeline::destroyPipeline() {
+    vkDestroyBuffer(win.device.device, vertexBuffer, nullptr);
+    vkFreeMemory(win.device.device, vertexBufferMem, nullptr);
+    
+    
     vkDestroyPipeline(win.device.device, graphicsPipeline, nullptr);
     vkDestroyPipelineLayout(win.device.device, pipelineLayout, nullptr);
 }
 
 void GraphicsPipeline::bindPipeline() {
     vkCmdBindPipeline(win.commandPool.currentCommandBuffer().vk, VK_PIPELINE_BIND_POINT_GRAPHICS, graphicsPipeline);
-    vkCmdDraw(win.commandPool.currentCommandBuffer().vk, 3, 1, 0, 0);
+    
+    VkBuffer vbo[] = {vertexBuffer};
+    VkDeviceSize offsets[] = {0};
+    vkCmdBindVertexBuffers(win.commandPool.currentCommandBuffer().vk, 0, 1, vbo, offsets);
+    vkCmdDraw(win.commandPool.currentCommandBuffer().vk, vertices.size(), 1, 0, 0);
 }
 
 void GraphicsPipeline::recreatePipeline() {

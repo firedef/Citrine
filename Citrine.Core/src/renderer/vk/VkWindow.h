@@ -4,7 +4,6 @@
 #define GLFW_INCLUDE_VULKAN
 #include "../glfw/Window.h"
 #include "VkHelper.h"
-#include <vulkan/vulkan.h>
 #include <vector>
 #include <string>
 #include <cstring>
@@ -20,15 +19,12 @@
 #include "CommandPool.h"
 #include "SwapChain.h"
 
-
-
-
 class VkWindow : public Window {
 public:
     VulkanInstance vkInstance;
     PhysicalDevice physicalDevice;
     LogicalDevice device;
-
+    
     VkSurfaceKHR surface;
     SwapChain swapChain;
     
